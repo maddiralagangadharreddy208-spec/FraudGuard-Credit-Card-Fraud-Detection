@@ -1,9 +1,11 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
@@ -15,7 +17,10 @@ from sklearn.metrics import (
     classification_report,
 )
 
-# ---------------- PAGE SETTINGS ----------------
+# ============================================================
+# PAGE CONFIGURATION
+# ============================================================
+
 st.set_page_config(
     page_title="FraudGuard | Security Analytics",
     page_icon="💳",
@@ -23,161 +28,139 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ---------------- PROFESSIONAL DESIGN ----------------
+# ============================================================
+# CUSTOM DESIGN
+# ============================================================
+
 st.markdown(
     """
     <style>
-    :root {
-        --background: #071326;
-        --panel: #102442;
-        --panel-light: #16345b;
-        --border: #294b76;
-        --text: #f2f6ff;
-        --muted: #b7c9e4;
-        --cyan: #32d4e7;
-        --blue: #398bff;
-    }
-
     .stApp {
-        background:
-            radial-gradient(circle at 8% 0%, #173e73 0%, transparent 30%),
-            linear-gradient(135deg, #071326 0%, #0a1931 55%, #10264a 100%);
-        color: var(--text);
+        background: linear-gradient(135deg, #07152f 0%, #102b59 100%);
+        color: #ffffff;
     }
 
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #071326 0%, #102747 100%);
-        border-right: 1px solid var(--border);
-    }
-
-    h1, h2, h3, h4, p, label, [data-testid="stMarkdownContainer"] {
-        color: var(--text);
+        background: #08172f;
     }
 
     .hero {
-        background: linear-gradient(115deg, #087cf0 0%, #276de1 48%, #7559e8 100%);
-        padding: 30px 32px;
-        border-radius: 22px;
-        margin: 4px 0 24px 0;
-        border: 1px solid #79c5ff;
-        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
-    }
-
-    .hero h1 {
-        margin: 0;
-        font-size: 34px;
-        font-weight: 800;
-        color: #ffffff !important;
-        letter-spacing: -0.5px;
-    }
-
-    .hero p {
-        margin: 10px 0 0 0;
-        color: #e6f1ff !important;
-        font-size: 15px;
-    }
-
-    .eyebrow {
-        color: #bfefff !important;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-    }
-
-    [data-testid="stMetric"] {
-        background: linear-gradient(145deg, rgba(22, 54, 94, 0.98), rgba(28, 75, 130, 0.95));
-        border: 1px solid #3f75b4;
-        border-radius: 17px;
-        padding: 19px 20px;
-        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.13);
-    }
-
-    [data-testid="stMetricLabel"] p {
-        color: #c9ddfa !important;
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    [data-testid="stMetricValue"] {
-        color: #ffffff !important;
-        font-weight: 800;
-    }
-
-    div.stButton > button {
-        background: linear-gradient(90deg, #08bfcf, #1686ff);
+        background: linear-gradient(110deg, #06b6d4, #2563eb, #6246ea);
+        padding: 28px;
+        border-radius: 20px;
         color: white;
-        border: 0;
-        border-radius: 11px;
-        padding: 12px 18px;
-        font-weight: 750;
-        min-height: 44px;
-        transition: 0.2s ease;
+        margin-bottom: 22px;
     }
 
-    div.stButton > button:hover {
-        border: 1px solid #d8f5ff;
-        color: white;
-        filter: brightness(1.08);
-    }
-
-    .panel {
-        background: linear-gradient(145deg, rgba(17, 42, 73, 0.96), rgba(19, 51, 88, 0.96));
-        border: 1px solid var(--border);
+    .metric-card {
+        background: linear-gradient(140deg, #087bd5, #0754b8);
+        border: 1px solid rgba(255,255,255,0.15);
         border-radius: 16px;
-        padding: 20px 22px;
-        margin: 8px 0;
+        padding: 20px;
+        min-height: 120px;
     }
 
-    .status-pill {
-        display: inline-block;
-        border-radius: 999px;
-        padding: 6px 11px;
-        font-size: 12px;
+    .metric-label {
+        font-size: 14px;
+        color: #dbeafe;
+    }
+
+    .metric-value {
+        font-size: 29px;
         font-weight: 800;
-        background: rgba(50, 212, 231, 0.12);
-        border: 1px solid rgba(50, 212, 231, 0.55);
-        color: #aaf6ff;
+        margin-top: 8px;
+        color: white;
     }
 
-    .small-note {
-        color: #b7c9e4 !important;
-        font-size: 12px;
-    }
-
-    [data-testid="stDataFrame"], [data-testid="stTable"] {
-        border: 1px solid #2d4f79;
+    .notice {
+        background: rgba(14, 165, 233, 0.15);
+        border: 1px solid #0891b2;
+        padding: 14px;
         border-radius: 12px;
-        overflow: hidden;
+        margin: 12px 0;
     }
 
-    hr {
-        border-color: #29476e;
+    h1, h2, h3 {
+        color: #ffffff !important;
     }
 
-    [data-testid="stAlert"] {
-        border-radius: 12px;
-    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# ---------------- LOAD DATA ----------------
-@st.cache_data
+
+# ============================================================
+# REUSABLE COMPONENTS
+# ============================================================
+
+def metric_card(label, value):
+    st.markdown(
+        f"""
+        <div class="metric-card">
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def section_title(title, subtitle=None):
+    st.markdown(f"## {title}")
+    if subtitle:
+        st.caption(subtitle)
+
+
+# ============================================================
+# LOAD REAL DATASET
+# ============================================================
+
+@st.cache_data(show_spinner="Loading and preparing transaction data...")
 def load_data():
-    data = pd.read_csv("creditcard.csv")
+    dataset_path = Path(__file__).resolve().parent / "creditcard.csv"
+
+    if not dataset_path.exists():
+        raise FileNotFoundError(
+            "creditcard.csv was not found. Place the dataset "
+            "in the same folder as app.py."
+        )
+
+    data = pd.read_csv(dataset_path)
+
+    required_columns = {"Time", "Amount", "Class"}
+    if not required_columns.issubset(data.columns):
+        raise ValueError(
+            "The CSV does not contain the expected credit card "
+            "dataset columns, including Time, Amount, and Class."
+        )
+
+    if data["Class"].isna().any():
+        data = data.dropna(subset=["Class"])
+
     data = data.drop_duplicates().reset_index(drop=True)
+
+    if not set(data["Class"].unique()).issubset({0, 1}):
+        raise ValueError("The Class column must contain labels 0 and 1.")
+
+    if data["Class"].nunique() != 2:
+        raise ValueError(
+            "The dataset must contain both legitimate and fraud examples."
+        )
+
     return data
 
 
-# ---------------- TRAIN MODEL ----------------
-@st.cache_resource
+# ============================================================
+# TRAIN RANDOM FOREST MODEL
+# ============================================================
+
+@st.cache_resource(show_spinner="Training the Random Forest model...")
 def train_model():
     data = load_data()
+
     X = data.drop(columns=["Class"])
-    y = data["Class"]
+    y = data["Class"].astype(int)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -189,343 +172,454 @@ def train_model():
 
     model = RandomForestClassifier(
         n_estimators=100,
-        class_weight={0: 1, 1: 3},
         random_state=42,
+        class_weight="balanced",
         n_jobs=-1,
     )
+
     model.fit(X_train, y_train)
 
-    predictions = model.predict(X_test)
+    y_pred = model.predict(X_test)
+    y_prob = model.predict_proba(X_test)[:, 1]
+
     metrics = {
-        "accuracy": accuracy_score(y_test, predictions),
-        "precision": precision_score(y_test, predictions, zero_division=0),
-        "recall": recall_score(y_test, predictions, zero_division=0),
-        "f1": f1_score(y_test, predictions, zero_division=0),
-        "matrix": confusion_matrix(y_test, predictions),
-        "report": classification_report(
-            y_test, predictions, output_dict=True, zero_division=0
+        "accuracy": accuracy_score(y_test, y_pred),
+        "precision": precision_score(
+            y_test, y_pred, zero_division=0
         ),
-        "predictions": predictions,
+        "recall": recall_score(
+            y_test, y_pred, zero_division=0
+        ),
+        "f1": f1_score(
+            y_test, y_pred, zero_division=0
+        ),
+        "confusion_matrix": confusion_matrix(
+            y_test, y_pred, labels=[0, 1]
+        ),
+        "report": classification_report(
+            y_test,
+            y_pred,
+            labels=[0, 1],
+            target_names=["Legitimate", "Fraud"],
+            output_dict=True,
+            zero_division=0,
+        ),
     }
 
-    return data, X_test, y_test, model, metrics
+    return (
+        data,
+        model,
+        X_test,
+        y_test,
+        y_pred,
+        y_prob,
+        metrics,
+    )
 
+
+# ============================================================
+# START APPLICATION
+# ============================================================
 
 try:
-    data, X_test, y_test, model, metrics = train_model()
+    (
+        data,
+        model,
+        X_test,
+        y_test,
+        y_pred,
+        y_prob,
+        metrics,
+    ) = train_model()
+
 except Exception as error:
-    st.error("Unable to load the dataset or train the model.")
-    st.write("Check that creditcard.csv is in the same folder as app.py.")
-    st.exception(error)
+    st.error("FraudGuard could not load the dataset or train the model.")
+    st.code(str(error))
+    st.info(
+        "Check that creditcard.csv is in the same folder as app.py "
+        "and that the required Python packages are installed."
+    )
     st.stop()
 
-# ---------------- SIDEBAR ----------------
+
+# ============================================================
+# SIDEBAR NAVIGATION
+# ============================================================
+
 with st.sidebar:
-    st.markdown("## 💳 FraudGuard")
+    st.markdown("# 💳 FraudGuard")
     st.caption("CREDIT CARD SECURITY ANALYTICS")
     st.divider()
 
     page = st.radio(
         "NAVIGATION",
-        ["Dashboard", "Fraud Detection", "Model Analytics"],
+        [
+            "Dashboard",
+            "Fraud Detection",
+            "Model Analytics",
+        ],
     )
 
     st.divider()
+
+    st.markdown("### Dataset Summary")
     st.metric("Dataset Transactions", f"{len(data):,}")
     st.metric("Fraud Cases", f"{int(data['Class'].sum()):,}")
-    st.markdown(
-        '<p class="small-note">Academic machine-learning demonstration</p>',
-        unsafe_allow_html=True,
-    )
 
-# ---------------- DASHBOARD ----------------
+    st.caption("Academic machine-learning demonstration")
+
+
+# ============================================================
+# PAGE 1: DASHBOARD
+# ============================================================
+
 if page == "Dashboard":
     st.markdown(
         """
         <div class="hero">
-            <div class="eyebrow">SECURITY OPERATIONS CENTER</div>
+            <p><b>SECURITY OPERATIONS CENTER</b></p>
             <h1>💳 FraudGuard</h1>
-            <p>Credit Card Fraud Detection · Intelligent transaction analysis powered by a Random Forest model.</p>
+            <p>
+                Credit Card Fraud Detection · Intelligent transaction
+                analysis powered by a Random Forest model.
+            </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    total = len(data)
-    fraud = int(data["Class"].sum())
-    legitimate = total - fraud
-    fraud_rate = fraud / total * 100
+    section_title(
+        "Portfolio Overview",
+        "Summary of the dataset used for model development.",
+    )
 
-    st.markdown("### Portfolio overview")
-    a, b, c, d = st.columns(4)
-    a.metric("Total Transactions", f"{total:,}")
-    b.metric("Legitimate", f"{legitimate:,}")
-    c.metric("Fraud Cases", f"{fraud:,}")
-    d.metric("Fraud Rate", f"{fraud_rate:.3f}%")
+    total_transactions = len(data)
+    fraud_cases = int(data["Class"].sum())
+    legitimate_cases = total_transactions - fraud_cases
+    fraud_rate = (
+        fraud_cases / total_transactions * 100
+        if total_transactions
+        else 0
+    )
 
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        metric_card("Total Transactions", f"{total_transactions:,}")
+
+    with col2:
+        metric_card("Legitimate", f"{legitimate_cases:,}")
+
+    with col3:
+        metric_card("Fraud Cases", f"{fraud_cases:,}")
+
+    with col4:
+        metric_card("Fraud Rate", f"{fraud_rate:.3f}%")
+
+    st.markdown("")
     st.markdown(
-        '<span class="status-pill">● DATASET LOADED</span> '
-        '<span class="status-pill">● RANDOM FOREST MODEL READY</span>',
+        """
+        <div class="notice">
+            <b>● Dataset loaded</b> &nbsp; | &nbsp;
+            <b>● Random Forest model ready</b>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
-    st.divider()
 
-    left, right = st.columns(2, gap="large")
+    section_title("Transaction Distribution")
 
-    with left:
-        st.subheader("📊 Transaction distribution")
+    chart_col1, chart_col2 = st.columns(2)
+
+    with chart_col1:
         fig, ax = plt.subplots(figsize=(7, 4))
-        fig.patch.set_facecolor("#102442")
-        ax.set_facecolor("#102442")
-        bars = ax.bar(
-            ["Legitimate", "Fraud"],
-            [legitimate, fraud],
-            color=["#32b9e8", "#ff6685"],
-            width=0.55,
-        )
-        ax.set_ylabel("Number of transactions", color="#dceaff")
-        ax.tick_params(colors="#dceaff")
-        ax.spines["bottom"].set_color("#52739b")
-        ax.spines["left"].set_color("#52739b")
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.grid(axis="y", alpha=0.18, color="#9ebbe0")
-        ax.set_axisbelow(True)
-        ax.bar_label(bars, fmt="%.0f", color="#ffffff", padding=4, fontsize=9)
-        fig.tight_layout()
-        st.pyplot(fig, use_container_width=True)
+
+        labels = ["Legitimate", "Fraud"]
+        values = [legitimate_cases, fraud_cases]
+
+        ax.bar(labels, values)
+        ax.set_title("Transaction Class Counts")
+        ax.set_ylabel("Number of Transactions")
+        ax.grid(axis="y", alpha=0.2)
+
+        st.pyplot(fig, width="stretch")
         plt.close(fig)
 
-    with right:
-        st.subheader("🍩 Dataset composition")
+    with chart_col2:
         fig, ax = plt.subplots(figsize=(7, 4))
-        fig.patch.set_facecolor("#102442")
-        wedges, texts, autotexts = ax.pie(
-            [legitimate, fraud],
-            labels=["Legitimate", "Fraud"],
+
+        ax.pie(
+            values,
+            labels=labels,
             autopct="%1.2f%%",
             startangle=90,
-            colors=["#32b9e8", "#ff6685"],
-            wedgeprops={"width": 0.42, "edgecolor": "#102442", "linewidth": 2},
-            textprops={"color": "#f2f6ff", "fontsize": 10},
         )
-        for autotext in autotexts:
-            autotext.set_color("#ffffff")
-            autotext.set_fontweight("bold")
-        ax.set_facecolor("#102442")
-        fig.tight_layout()
-        st.pyplot(fig, use_container_width=True)
+        ax.set_title("Legitimate vs Fraud")
+
+        st.pyplot(fig, width="stretch")
         plt.close(fig)
 
-    st.divider()
-    st.subheader("🔎 Dataset preview")
-    st.caption("The first 10 rows after duplicate records have been removed.")
-    st.dataframe(data.head(10), width="stretch", hide_index=True)
+    section_title("Recent Dataset Records")
 
-    st.info(
-        "Fraud transactions are rare in this dataset. Accuracy alone can be misleading, "
-        "so FraudGuard also reports fraud precision, recall and F1-score."
+    st.dataframe(
+        data.tail(10),
+        width="stretch",
+        hide_index=True,
     )
 
-# ---------------- FRAUD DETECTION ----------------
+
+# ============================================================
+# PAGE 2: FRAUD DETECTION
+# ============================================================
+
 elif page == "Fraud Detection":
     st.markdown(
         """
         <div class="hero">
-            <div class="eyebrow">TRANSACTION INVESTIGATION</div>
-            <h1>🔍 Fraud Detection</h1>
-            <p>Choose a held-out test transaction and inspect the model's prediction and estimated risk.</p>
+            <h1>🔍 Fraud Detection Center</h1>
+            <p>
+                Select a transaction from the held-out test dataset
+                and inspect the model's prediction.
+            </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    fraud_positions = np.flatnonzero(y_test.to_numpy() == 1)
-    legitimate_positions = np.flatnonzero(y_test.to_numpy() == 0)
-
-    choice = st.radio(
-        "Choose a demonstration scenario",
-        [
-            "Test a legitimate transaction",
-            "Test a real fraud transaction",
-            "Choose test transaction index",
-        ],
-        horizontal=True,
+    st.warning(
+        "This is an academic demonstration using historical dataset "
+        "records. It is not a live payment gateway."
     )
 
-    if choice == "Test a legitimate transaction":
-        selected_index = int(legitimate_positions[0])
-        st.info("This sample's actual dataset label is legitimate.")
-    elif choice == "Test a real fraud transaction":
-        selected_index = int(fraud_positions[0])
-        st.warning(
-            "This sample's actual dataset label is fraud. The model may or may not "
-            "classify it correctly; this is useful for demonstrating model evaluation."
+    section_title("Select a Test Transaction")
+
+    transaction_number = st.number_input(
+        "Test transaction number",
+        min_value=0,
+        max_value=len(X_test) - 1,
+        value=0,
+        step=1,
+    )
+
+    transaction = X_test.iloc[[int(transaction_number)]]
+    actual_label = int(y_test.iloc[int(transaction_number)])
+
+    predicted_label = int(model.predict(transaction)[0])
+    fraud_probability = float(
+        model.predict_proba(transaction)[0][
+            list(model.classes_).index(1)
+        ]
+    )
+
+    risk_level = (
+        "HIGH"
+        if fraud_probability >= 0.70
+        else "MEDIUM"
+        if fraud_probability >= 0.30
+        else "LOW"
+    )
+
+    st.markdown("---")
+    section_title("Analysis Result")
+
+    result_col1, result_col2, result_col3 = st.columns(3)
+
+    with result_col1:
+        if predicted_label == 1:
+            metric_card("Model Prediction", "POSSIBLE FRAUD")
+        else:
+            metric_card("Model Prediction", "LEGITIMATE")
+
+    with result_col2:
+        metric_card(
+            "Estimated Fraud Probability",
+            f"{fraud_probability * 100:.2f}%",
         )
+
+    with result_col3:
+        metric_card("Model Risk Level", risk_level)
+
+    st.progress(fraud_probability)
+
+    st.caption(
+        "The displayed probability is the model's estimated score, "
+        "not a guarantee that a transaction is fraudulent."
+    )
+
+    actual_text = "Fraud" if actual_label == 1 else "Legitimate"
+    predicted_text = "Fraud" if predicted_label == 1 else "Legitimate"
+
+    st.write(f"**Actual dataset label:** {actual_text}")
+    st.write(f"**Model prediction:** {predicted_text}")
+
+    if predicted_label == actual_label:
+        st.success("The prediction matches the actual dataset label.")
     else:
-        selected_index = int(
-            st.number_input(
-                "Test transaction index",
-                min_value=0,
-                max_value=len(X_test) - 1,
-                value=0,
-                step=1,
-            )
-        )
+        st.error("The prediction does not match the actual dataset label.")
 
-    if st.button("🔎 Analyze transaction", use_container_width=True):
-        transaction = X_test.iloc[[selected_index]]
-        prediction = int(model.predict(transaction)[0])
-        probability = float(model.predict_proba(transaction)[0][1])
-        actual = int(y_test.iloc[selected_index])
+    section_title("Transaction Features")
 
-        if probability < 0.20:
-            risk_label = "LOW"
-            risk_message = "The model estimates a low fraud probability for this sample."
-        elif probability < 0.60:
-            risk_label = "MEDIUM"
-            risk_message = "The model estimates a medium fraud probability; further review may be appropriate."
-        else:
-            risk_label = "HIGH"
-            risk_message = "The model estimates a high fraud probability; review this sample carefully."
+    st.dataframe(
+        transaction.reset_index(drop=True),
+        width="stretch",
+        hide_index=True,
+    )
 
-        st.divider()
-        st.subheader("Analysis result")
-        result_col, probability_col, risk_col = st.columns(3)
 
-        with result_col:
-            if prediction == 1:
-                st.error("⚠️ Model prediction: POSSIBLE FRAUD")
-            else:
-                st.success("✅ Model prediction: LIKELY LEGITIMATE")
+# ============================================================
+# PAGE 3: MODEL ANALYTICS
+# ============================================================
 
-        with probability_col:
-            st.metric("Estimated Fraud Probability", f"{probability:.2%}")
-
-        with risk_col:
-            st.metric("Model Risk Level", risk_label)
-
-        st.progress(float(np.clip(probability, 0.0, 1.0)))
-        st.caption(risk_message)
-
-        st.write(
-            "**Actual dataset label:**",
-            "Fraud" if actual == 1 else "Legitimate",
-        )
-
-        if prediction == actual:
-            st.success("Correct prediction: the model matches the actual dataset label.")
-        else:
-            st.warning("Incorrect prediction: the model does not match the actual dataset label.")
-
-        st.subheader("Transaction features")
-        st.dataframe(transaction, width="stretch")
-
-        st.caption(
-            "Academic demonstration only. The risk level is based on the model's predicted "
-            "probability and is not a real banking decision or a guarantee of transaction safety."
-        )
-
-# ---------------- MODEL ANALYTICS ----------------
 elif page == "Model Analytics":
     st.markdown(
         """
         <div class="hero">
-            <div class="eyebrow">MODEL PERFORMANCE</div>
             <h1>📊 Model Analytics</h1>
-            <p>Evaluation results from the held-out test dataset.</p>
+            <p>
+                Evaluation results from the held-out test dataset.
+            </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    a, b, c, d = st.columns(4)
-    a.metric("Accuracy", f"{metrics['accuracy']:.2%}")
-    b.metric("Fraud Precision", f"{metrics['precision']:.2%}")
-    c.metric("Fraud Recall", f"{metrics['recall']:.2%}")
-    d.metric("Fraud F1-Score", f"{metrics['f1']:.2%}")
+    col1, col2, col3, col4 = st.columns(4)
 
-    st.divider()
-    st.subheader("Confusion matrix")
-    st.caption("Rows represent actual labels; columns represent predicted labels.")
+    with col1:
+        metric_card("Accuracy", f"{metrics['accuracy']:.2%}")
+
+    with col2:
+        metric_card("Fraud Precision", f"{metrics['precision']:.2%}")
+
+    with col3:
+        metric_card("Fraud Recall", f"{metrics['recall']:.2%}")
+
+    with col4:
+        metric_card("Fraud F1-Score", f"{metrics['f1']:.2%}")
+
+    st.markdown("---")
+    section_title("Confusion Matrix")
+
+    st.caption(
+        "Rows represent actual labels; columns represent predicted labels."
+    )
+
+    cm = metrics["confusion_matrix"]
 
     fig, ax = plt.subplots(figsize=(7, 5))
-    fig.patch.set_facecolor("#102442")
+
     sns.heatmap(
-        metrics["matrix"],
+        cm,
         annot=True,
         fmt=",d",
-        cmap="mako",
+        cmap="winter",
         xticklabels=["Legitimate", "Fraud"],
         yticklabels=["Legitimate", "Fraud"],
-        annot_kws={"size": 13, "weight": "bold"},
-        linewidths=1,
-        linecolor="#102442",
         ax=ax,
     )
-    ax.set_xlabel("Predicted label", color="#dceaff", labelpad=10)
-    ax.set_ylabel("Actual label", color="#dceaff", labelpad=10)
-    ax.tick_params(colors="#dceaff")
-    fig.tight_layout()
-    st.pyplot(fig, use_container_width=True)
+
+    ax.set_xlabel("Predicted Label")
+    ax.set_ylabel("Actual Label")
+    ax.set_title("Confusion Matrix")
+
+    st.pyplot(fig, width="stretch")
     plt.close(fig)
 
-    st.subheader("Classification report")
-    report_df = pd.DataFrame(metrics["report"]).transpose()
-    st.dataframe(report_df.round(4), width="stretch")
+    st.markdown("---")
+    section_title("Classification Report")
 
-    st.subheader("Feature importance")
+    report_df = pd.DataFrame(metrics["report"]).transpose()
+
+    st.dataframe(
+        report_df.round(4),
+        width="stretch",
+    )
+
+    st.markdown("---")
+    section_title("Feature Importance")
+
     importance_df = pd.DataFrame(
         {
             "Feature": X_test.columns,
             "Importance": model.feature_importances_,
         }
-    ).sort_values("Importance", ascending=False).head(12)
+    ).sort_values("Importance", ascending=False)
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    fig.patch.set_facecolor("#102442")
-    ax.set_facecolor("#102442")
-    ax.barh(
-        importance_df["Feature"][::-1],
-        importance_df["Importance"][::-1],
-        color="#32b9e8",
+    top_features = importance_df.head(10).sort_values(
+        "Importance",
+        ascending=True,
     )
-    ax.set_xlabel("Relative importance", color="#dceaff")
-    ax.tick_params(colors="#dceaff")
-    ax.spines["bottom"].set_color("#52739b")
-    ax.spines["left"].set_color("#52739b")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.grid(axis="x", alpha=0.18, color="#9ebbe0")
-    ax.set_axisbelow(True)
-    fig.tight_layout()
-    st.pyplot(fig, use_container_width=True)
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+
+    ax.barh(
+        top_features["Feature"],
+        top_features["Importance"],
+    )
+
+    ax.set_title("Top 10 Important Features")
+    ax.set_xlabel("Importance")
+    ax.grid(axis="x", alpha=0.2)
+
+    st.pyplot(fig, width="stretch")
     plt.close(fig)
 
-    st.subheader("Model information")
-    st.markdown(
-        """
-        <div class="panel">
-            <p><b>Algorithm:</b> Random Forest Classifier</p>
-            <p><b>Number of trees:</b> 100</p>
-            <p><b>Training/testing split:</b> 80% / 20%</p>
-            <p><b>Class balancing:</b> Enabled using class weights</p>
-            <p><b>Fraud label:</b> 1</p>
-            <p><b>Legitimate label:</b> 0</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    with st.expander("View all feature importances"):
+        st.dataframe(
+            importance_df.reset_index(drop=True),
+            width="stretch",
+            hide_index=True,
+        )
+
+    st.markdown("---")
+    section_title("Model Information")
+
+    info_col1, info_col2 = st.columns(2)
+
+    with info_col1:
+        st.markdown(
+            """
+            **Algorithm:** Random Forest Classifier
+
+            **Number of trees:** 100
+
+            **Training/testing split:** 80% / 20%
+
+            **Class balancing:** Enabled using class weights
+            """
+        )
+
+    with info_col2:
+        st.markdown(
+            """
+            **Fraud label:** 1
+
+            **Legitimate label:** 0
+
+            **Evaluation:** Held-out test dataset
+            """
+        )
 
     st.info(
-        "Accuracy alone is not enough for fraud detection. Fraud recall shows how many actual "
-        "fraud cases were found, while precision shows how many predicted fraud cases were truly fraud."
+        "Accuracy alone is not enough for fraud detection. "
+        "Recall measures how many actual fraud cases were found, "
+        "while precision measures how many predicted fraud cases "
+        "were truly fraud."
     )
 
+
+# ============================================================
+# FOOTER
+# ============================================================
+
 st.markdown("---")
+
 st.markdown(
-    "<p class='small-note' style='text-align:center;'>"
-    "FraudGuard · Credit Card Fraud Detection · Academic Machine Learning Project"
-    "</p>",
+    """
+    <p style="text-align:center; color:#cbd5e1;">
+        FraudGuard · Credit Card Fraud Detection ·
+        Academic Machine Learning Project
+    </p>
+    """,
     unsafe_allow_html=True,
 )
